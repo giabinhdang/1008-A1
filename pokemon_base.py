@@ -4,6 +4,7 @@ This module contains PokeType, TypeEffectiveness and an abstract version of the 
 from abc import ABC
 from enum import Enum
 from data_structures.referential_array import ArrayR
+import csv
 
 class PokeType(Enum):
     """
@@ -29,6 +30,19 @@ class TypeEffectiveness:
     """
     Represents the type effectiveness of one Pokemon type against another.
     """
+    EFFECT_TABLE = {}
+
+    @classmethod
+    def populate_effectiveness(cls, filename):
+        with open(filename, 'r') as file:
+            reader = csv.reader(file)
+            types = next(reader)
+            for row in reader:
+                attack_type = row[0]
+                for i, effectiveness in enumerate(row[1:]):
+                    defend_type = types[i]
+                    cls.EFFECT_TABLE[(attack_type, defend_type)] = float(effectiveness)
+        print(cls.EFFECT_TABLE)
 
     @classmethod
     def get_effectiveness(cls, attack_type: PokeType, defend_type: PokeType) -> float:
@@ -42,32 +56,34 @@ class TypeEffectiveness:
         Returns:
             float: The effectiveness of the attack, as a float value between 0 and 4.
         """
-        raise NotImplementedError
+        return cls.EFFECT_TABLE.get((attack_type, defend_type), 1.0)
 
     def __len__(self) -> int:
         """
         Returns the number of types of Pokemon
         """
-        raise NotImplementedError
+        return len(PokeType)
+    
+TypeEffectiveness.populate_effectiveness('type_effectiveness.csv')
 
 
 class Pokemon(ABC): # pylint: disable=too-few-public-methods, too-many-instance-attributes
     """
     Represents a base Pokemon class with properties and methods common to all Pokemon.
     """
-    def __init__(self):
+    def __init__(self, health, level, poketype, battle_power, evolution_line, name, experience, defence, speed):
         """
         Initializes a new instance of the Pokemon class.
         """
-        self.health = None
-        self.level = None
-        self.poketype = None
-        self.battle_power = None
-        self.evolution_line = None
-        self.name = None
-        self.experience = None
-        self.defence = None
-        self.speed = None
+        self.health = health
+        self.level = level
+        self.poketype = poketype
+        self.battle_power = battle_power
+        self.evolution_line = evolution_line
+        self.name = name
+        self.experience = experience
+        self.defence = defence
+        self.speed = speed
 
     def get_name(self) -> str:
         """
@@ -189,7 +205,13 @@ class Pokemon(ABC): # pylint: disable=too-few-public-methods, too-many-instance-
         Evolves the Pokemon to the next stage in its evolution line, and updates
           its attributes accordingly.
         """
-        raise NotImplementedError
+        if len(self.evolution_line) > 0 and self.evolution_line.index(self.name) < len(self.evolution_line) - 1:
+            self.name = self.evolution_line[self.evolution_line.index(self.name) + 1]
+            self.health *= 1.5
+            self.battle_power *= 1.5
+            self.speed *= 1.5
+            self.defence *= 1.5
+
 
     def is_alive(self) -> bool:
         """
