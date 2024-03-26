@@ -42,7 +42,7 @@ class TypeEffectiveness:
                 for i, effectiveness in enumerate(row[1:]):
                     defend_type = types[i]
                     cls.EFFECT_TABLE[(attack_type, defend_type)] = float(effectiveness)
-        print(cls.EFFECT_TABLE)
+            print(cls.EFFECT_TABLE)
 
     @classmethod
     def get_effectiveness(cls, attack_type: PokeType, defend_type: PokeType) -> float:
@@ -56,7 +56,8 @@ class TypeEffectiveness:
         Returns:
             float: The effectiveness of the attack, as a float value between 0 and 4.
         """
-        return cls.EFFECT_TABLE.get((attack_type, defend_type), 1.0)
+
+        return cls.EFFECT_TABLE.get((attack_type), 1.0)
 
     def __len__(self) -> int:
         """
@@ -65,7 +66,7 @@ class TypeEffectiveness:
         return len(PokeType)
     
 TypeEffectiveness.populate_effectiveness('type_effectiveness.csv')
-
+print(TypeEffectiveness.get_effectiveness(PokeType.WATER, PokeType.GRASS))
 
 class Pokemon(ABC): # pylint: disable=too-few-public-methods, too-many-instance-attributes
     """
