@@ -11,6 +11,7 @@ class PokeTeam:
     def __init__(self):
         self.team = [] # change None value if necessary
         self.team_count = 0
+        self.defence = 0
 
     def choose_manually(self):
         self.team = []
@@ -50,7 +51,7 @@ class PokeTeam:
         raise NotImplementedError
 
     def assemble_team(self, battle_mode: BattleMode) -> None:
-        raise NotImplementedError
+        pass
 
     def special(self, battle_mode: BattleMode) -> None:
         raise NotImplementedError
@@ -95,7 +96,7 @@ class Trainer:
         return round(completion, 2)
 
     def __str__(self) -> str:
-        return f"Trainer {self.name} Pokedex Completion: {self.get_pokedex_completion()}%"
+        return f"Trainer {self.name} Pokedex Completion: {int(self.get_pokedex_completion() * 100)}%"
 
 if __name__ == '__main__':
     t = Trainer('Ash')
