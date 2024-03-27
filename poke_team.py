@@ -11,7 +11,6 @@ class PokeTeam:
     def __init__(self):
         self.team = [] # change None value if necessary
         self.team_count = 0
-        self.defence = 0
 
     def choose_manually(self):
         self.team = []
