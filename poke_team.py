@@ -9,11 +9,18 @@ class PokeTeam:
     CRITERION_LIST = ["health", "defence", "battle_power", "speed", "level"]
 
     def __init__(self):
-        self.team = None # change None value if necessary
+        self.team = [] # change None value if necessary
         self.team_count = 0
 
     def choose_manually(self):
-        raise NotImplementedError
+        self.team = []
+        print("Choose your Pokemon:")
+        for i in range(self.TEAM_LIMIT):
+            print(f"Select Pokemon {i+1}:")
+            print("Available Pokemon:")
+            for j, PokeType in enumerate(getAllPokeTypes()):
+                print(f"{j+1}. {PokeType.__name__}")
+            choice = int(input("Enter your choice"))
 
     def choose_randomly(self) -> None:
         all_pokemon = get_all_pokemon_types()
