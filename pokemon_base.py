@@ -34,14 +34,12 @@ class TypeEffectiveness:
     @classmethod
     def populate_effectiveness(cls, filename):
         with open(filename, 'r') as file:
-            types_line = file.readline().strip().split(',')  # Read the first line for types
-            for line in file:
-                row = line.strip().split(',')
-                attack_type = row[0]
-                for i, effectiveness in enumerate(row[1:]):
-                    defend_type = types_line[i]
-                    cls.EFFECT_TABLE[(attack_type, defend_type)] = float(effectiveness)
-            print(cls.EFFECT_TABLE)
+            lines = file.readlines()
+            types = lines[0].strip().split(',')
+            for i, line in enumerate(lines[1:]):
+                values = line.strip().split(',')
+                for j, value in enumerate(values):
+                    cls.EFFECT_TABLE[(PokeType(i), PokeType(j))] = float(value)
 
     @classmethod
     def get_effectiveness(cls, attack_type: PokeType, defend_type: PokeType) -> float:
@@ -55,7 +53,7 @@ class TypeEffectiveness:
         Returns:
             float: The effectiveness of the attack, as a float value between 0 and 4.
         """
-        return cls.EFFECT_TABLE.get((attack_type.name, defend_type.name), 1.0)
+        return cls.EFFECT_TABLE.get((attack_type, defend_type), 1.0)
 
     def __len__(self) -> int:
         """
@@ -64,25 +62,24 @@ class TypeEffectiveness:
         return len(PokeType)
     
 TypeEffectiveness.populate_effectiveness('type_effectiveness.csv')
-print(TypeEffectiveness.get_effectiveness(PokeType.WATER, PokeType.GRASS))
 
 class Pokemon(ABC): # pylint: disable=too-few-public-methods, too-many-instance-attributes
     """
     Represents a base Pokemon class with properties and methods common to all Pokemon.
     """
-    def __init__(self, health, level, poketype, battle_power, evolution_line, name, experience, defence, speed):
+    def __init__(self):
         """
         Initializes a new instance of the Pokemon class.
         """
-        self.health = health
-        self.level = level
-        self.poketype = poketype
-        self.battle_power = battle_power
-        self.evolution_line = evolution_line
-        self.name = name
-        self.experience = experience
-        self.defence = defence
-        self.speed = speed
+        self.health = None
+        self.level = None
+        self.poketype = None
+        self.battle_power = None
+        self.evolution_line = None
+        self.name = None
+        self.experience = None
+        self.defence = None
+        self.speed = None
 
     def get_name(self) -> str:
         """
@@ -176,7 +173,12 @@ class Pokemon(ABC): # pylint: disable=too-few-public-methods, too-many-instance-
         Returns:
             int: The damage that this Pokemon inflicts on the other Pokemon during an attack.
         """
-        raise NotImplementedError
+
+        # Calculate the type effectiveness of this Pokemon's type against the defending Pokemon's type
+        effectiveness = TypeEffectiveness.get_effectiveness(self.poketype, other_pokemon.get_poketype())
+        # Calculate the attack points based on the battle power and type effectiveness
+        attack_points = self.battle_power * effectiveness
+        return attack_points
 
     def defend(self, damage: int) -> None:
         """
@@ -204,12 +206,17 @@ class Pokemon(ABC): # pylint: disable=too-few-public-methods, too-many-instance-
         Evolves the Pokemon to the next stage in its evolution line, and updates
           its attributes accordingly.
         """
-        if len(self.evolution_line) > 0 and self.evolution_line.index(self.name) < len(self.evolution_line) - 1:
-            self.name = self.evolution_line[self.evolution_line.index(self.name) + 1]
-            self.health *= 1.5
-            self.battle_power *= 1.5
-            self.speed *= 1.5
-            self.defence *= 1.5
+        if self.evolution_line:
+            current_index = self.evolution_line.index(self.name)
+            if current_index < len(self.evolution_line) - 1:
+                next_name = self.evolution_line[current_index + 1]
+                # Change the name of the Pokemon
+                self.name = next_name
+                # Increase attributes by 1.5 times
+                self.battle_power *= 1.5
+                self.health *= 1.5
+                self.speed *= 1.5
+                self.defence *= 1.5
 
 
     def is_alive(self) -> bool:
