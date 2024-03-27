@@ -92,10 +92,10 @@ class Trainer:
         total_types = len(PokeType)
         seen_types = len(self.pokedex)
         completion = seen_types / total_types
-        return round(completion * 100, 1)
+        return round(completion, 2)
 
     def __str__(self) -> str:
-        return f"Trainer {self.name} Pokedex Completion: {round(self.get_pokedex_completion())}%"
+        return f"Trainer {self.name} Pokedex Completion: {self.get_pokedex_completion()}%"
 
 if __name__ == '__main__':
     t = Trainer('Ash')
