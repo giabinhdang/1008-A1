@@ -2,6 +2,7 @@ from pokemon import *
 import random
 from typing import List
 from battle_mode import BattleMode
+from data_structures.referential_array import ArrayR
 
 class PokeTeam:
     TEAM_LIMIT = 6
@@ -9,7 +10,7 @@ class PokeTeam:
     CRITERION_LIST = ["health", "defence", "battle_power", "speed", "level"]
 
     def __init__(self):
-        self.team = [] # change None value if necessary
+        self.team = ArrayR(self.TEAM_LIMIT) # change None value if necessary
         self.team_count = 0
 
     def choose_manually(self):
@@ -25,35 +26,36 @@ class PokeTeam:
                 print ("Please choose again!")
                 choice = int(input("How many Pokemon you want to choose?"))
             chosen_pokemon = get_all_pokemon_types()[choice - 1]()
-            self.team.append(chosen_pokemon)
+            self.team[i] = (chosen_pokemon)
 
     def choose_randomly(self) -> None:
-        # Initialize team as an empty list
-        self.team = []
         # Get all available Pokemon types
         all_pokemon = get_all_pokemon_types()
-        for _ in range(self.TEAM_LIMIT):
+        for i in range(self.TEAM_LIMIT):
             # Generate a random index to choose a Pokemon type
             rand_int = random.randint(0, len(all_pokemon) - 1)
             # Create an instance of a randomly chosen Pokemon
             chosen_pokemon = all_pokemon[rand_int]()
             # Add the chosen Pokemon to the team list
-            self.team.append(chosen_pokemon)
+            self.team[i] = chosen_pokemon
 
     def regenerate_team(self, battle_mode: BattleMode, criterion: str = None) -> None:
         for pokemon in self.team:
-            pokemon.regenerate()
+            if hasattr(pokemon, 'regenerate'):
+                pokemon.regenerate()
+                if pokemon.get_health() < 0:  
+                    pokemon.set_health(0)  
 
         self.assemble_team(battle_mode)
 
     def assign_team(self, criterion: str = None) -> None:
-        raise NotImplementedError
+        pass
 
     def assemble_team(self, battle_mode: BattleMode) -> None:
         pass
 
     def special(self, battle_mode: BattleMode) -> None:
-        raise NotImplementedError
+        pass
 
     def __getitem__(self, index: int):
         return self.team[index]
