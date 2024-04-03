@@ -71,7 +71,8 @@ class Pokemon(ABC): # pylint: disable=too-few-public-methods, too-many-instance-
         """
         Initializes a new instance of the Pokemon class.
         """
-        self.health = None
+        self.original_health = None
+        self.health = None 
         self.level = None
         self.poketype = None
         self.battle_power = None
@@ -98,6 +99,9 @@ class Pokemon(ABC): # pylint: disable=too-few-public-methods, too-many-instance-
             int: The current health of the Pokemon.
         """
         return self.health
+    
+    def regenerate(self):
+        self.health = self.original_health
 
     def get_level(self) -> int:
         """

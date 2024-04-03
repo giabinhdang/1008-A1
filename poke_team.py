@@ -2,7 +2,10 @@ from pokemon import *
 import random
 from typing import List
 from battle_mode import BattleMode
-from data_structures.referential_array import ArrayR
+from data_structures.referential_array import *
+from data_structures.stack_adt import *
+from data_structures.queue_adt import *
+from data_structures.sorted_list_adt import *
 
 class PokeTeam:
     TEAM_LIMIT = 6
@@ -10,11 +13,11 @@ class PokeTeam:
     CRITERION_LIST = ["health", "defence", "battle_power", "speed", "level"]
 
     def __init__(self):
-        self.team = ArrayR(self.TEAM_LIMIT) # change None value if necessary
+        self.team = None # change None value if necessary
         self.team_count = 0
 
     def choose_manually(self):
-        self.team = []
+        self.team = ArrayR(self.TEAM_LIMIT)  # Initialize self.team as an ArrayR object
         print("Choose your Pokemon:")
         for i in range(self.TEAM_LIMIT):
             print(f"Select Pokemon {i+1}:")
@@ -26,33 +29,53 @@ class PokeTeam:
                 print ("Please choose again!")
                 choice = int(input("How many Pokemon you want to choose?"))
             chosen_pokemon = get_all_pokemon_types()[choice - 1]()
-            self.team[i] = (chosen_pokemon)
+            self.team.insert(i, chosen_pokemon)  # Use the insert method to add the chosen Pokemon to the team
 
     def choose_randomly(self) -> None:
-        # Get all available Pokemon types
+        self.team = ArrayR(self.TEAM_LIMIT)
         all_pokemon = get_all_pokemon_types()
+        self.team_count = 0
         for i in range(self.TEAM_LIMIT):
-            # Generate a random index to choose a Pokemon type
-            rand_int = random.randint(0, len(all_pokemon) - 1)
-            # Create an instance of a randomly chosen Pokemon
-            chosen_pokemon = all_pokemon[rand_int]()
-            # Add the chosen Pokemon to the team list
-            self.team[i] = chosen_pokemon
+            rand_int = random.randint(0, len(all_pokemon)-1)
+            self.team[i] = all_pokemon[rand_int]()
+            self.team_count += 1
 
     def regenerate_team(self, battle_mode: BattleMode, criterion: str = None) -> None:
         for pokemon in self.team:
-            if hasattr(pokemon, 'regenerate'):
-                pokemon.regenerate()
-                if pokemon.get_health() < 0:  
-                    pokemon.set_health(0)  
+            pokemon.regenerate()
 
         self.assemble_team(battle_mode)
 
     def assign_team(self, criterion: str = None) -> None:
-        pass
+        if criterion not in self.CRITERION_LIST:
+            raise ValueError("Invalid criterion.")
+        
+        self.team.sort(key=lambda pokemon: getattr(pokemon, criterion))
 
     def assemble_team(self, battle_mode: BattleMode) -> None:
-        pass
+        if battle_mode == BattleMode.SET:
+            self.current_pokemon_index = 0
+
+            while self.has_healthy_pokemon():
+                self_pokemon = self.team[self.current_pokemon_index]
+
+                if not self_pokemon.battle_result(opponent_pokemon):
+                    self.remove_fainted_pokemon(self.current_pokemon_index)
+                    self.current_pokemon_index += 1
+                else:
+                    opponent.remove_fainted_pokemon(opponent.current_pokemon_index)
+
+            return self.has_healthy_pokemon()
+        elif battle_mode == BattleMode.SWITCH:
+            pass
+        elif battle_mode == BattleMode.SORTED:
+            pass
+        else:
+            raise ValueError("Invalid battle mode.")
+
+        for pokemon in self.team:
+            self.team.push(pokemon)
+        
 
     def special(self, battle_mode: BattleMode) -> None:
         pass
