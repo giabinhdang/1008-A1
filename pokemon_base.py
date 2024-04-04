@@ -29,17 +29,18 @@ class TypeEffectiveness:
     """
     Represents the type effectiveness of one Pokemon type against another.
     """
-    EFFECT_TABLE = {}
+    EFFECT_TABLE = None
 
     @classmethod
     def populate_effectiveness(cls, filename):
         with open(filename, 'r') as file:
             lines = file.readlines()
             types = lines[0].strip().split(',')
+            cls.EFFECT_TABLE = ArrayR(len(types)*len(types))
             for i, line in enumerate(lines[1:]):
                 values = line.strip().split(',')
                 for j, value in enumerate(values):
-                    cls.EFFECT_TABLE[(PokeType(i), PokeType(j))] = float(value)
+                    cls.EFFECT_TABLE[i*len(types)+j] = float(value)
 
     @classmethod
     def get_effectiveness(cls, attack_type: PokeType, defend_type: PokeType) -> float:
@@ -53,7 +54,11 @@ class TypeEffectiveness:
         Returns:
             float: The effectiveness of the attack, as a float value between 0 and 4.
         """
-        return cls.EFFECT_TABLE.get((attack_type, defend_type), 1.0)
+        types = list(PokeType)
+        n = len(types)
+        i = types.index(attack_type)
+        j = types.index(defend_type)
+        return cls.EFFECT_TABLE[i*n + j]
 
     def __len__(self) -> int:
         """

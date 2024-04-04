@@ -6,6 +6,7 @@ from data_structures.referential_array import *
 from data_structures.stack_adt import *
 from data_structures.queue_adt import *
 from data_structures.sorted_list_adt import *
+from data_structures.array_sorted_list import *
 
 class PokeTeam:
     TEAM_LIMIT = 6
@@ -50,38 +51,59 @@ class PokeTeam:
         if criterion not in self.CRITERION_LIST:
             raise ValueError("Invalid criterion.")
         
-        self.team.sort(key=lambda pokemon: getattr(pokemon, criterion))
+        self.team.sort(key=lambda pokemon: getattr(pokemon, criterion), reverse = True)
 
     def assemble_team(self, battle_mode: BattleMode) -> None:
         if battle_mode == BattleMode.SET:
-            self.current_pokemon_index = 0
-
-            while self.has_healthy_pokemon():
-                self_pokemon = self.team[self.current_pokemon_index]
-
-                if not self_pokemon.battle_result(opponent_pokemon):
-                    self.remove_fainted_pokemon(self.current_pokemon_index)
-                    self.current_pokemon_index += 1
-                else:
-                    opponent.remove_fainted_pokemon(opponent.current_pokemon_index)
-
-            return self.has_healthy_pokemon()
-        elif battle_mode == BattleMode.SWITCH:
-            pass
-        elif battle_mode == BattleMode.SORTED:
-            pass
+            self.team = ArrayStack(self.TEAM_LIMIT)
+            for pokemon in reversed(self.team.array):
+                self.team.push(pokemon)
+        elif battle_mode == BattleMode.ROTATE:
+            self.team = CircularQueue(self.TEAM_LIMIT)
+            for pokemon in self.team.array:
+                self.team.append(pokemon)
+        elif battle_mode == BattleMode.OPTIMISE:
+            self.team = ArraySortedList(self.TEAM_LIMIT)
+            self.assign_team("level")
         else:
             raise ValueError("Invalid battle mode.")
+        
+    def special(self, battle_mode: BattleMode) -> None:
+        if battle_mode == BattleMode.SET:
+            temp_stack = ArrayStack(self.TEAM_LIMIT)
+            while not self.team.is_empty():
+                temp_stack.push(self.team.pop())
+            self.team = temp_stack
 
-        for pokemon in self.team:
-            self.team.push(pokemon)
+        elif battle_mode == BattleMode.ROTATE:
+            half_size = len(self.team) // 2
+            for i in range(half_size):
+                bottom_index = len(self.team) - i - 1
+                temp = self.team[bottom_index]
+                self.team[bottom_index] = self.team[half_size + i]
+                self.team[half_size + i] = temp
+
+        elif battle_mode == BattleMode.OPTIMISE:
+            temp_list = ArraySortedList(self.TEAM_LIMIT)
+            for pokemon in self.team.array:
+                if pokemon is not None:
+                    temp_list.add(pokemon)
+            if len(temp_list.array) % 2 == 1:
+                reversed_list = ArraySortedList(self.TEAM_LIMIT)
+                for i in range (len(temp_list) - 1, -1, -1):
+                    reversed_list.add(temp_list[i])
+                self.team = reversed_list
+            else:
+                self.team = temp_list
+
+        else:
+            raise ValueError("Invalid battle mode.")
+        
+        self.assemble_team(battle_mode)
         
 
-    def special(self, battle_mode: BattleMode) -> None:
-        pass
-
     def __getitem__(self, index: int):
-        return self.team[index]
+        return self.team.array[index]
 
     def __len__(self):
         return len(self.team)
@@ -94,7 +116,7 @@ class Trainer:
     def __init__(self, name) -> None:
         self.name = name
         self.team = PokeTeam()
-        self.pokedex = set()
+        self.pokedex = ArrayR(len(PokeType))
 
     def pick_team(self, method: str) -> None:
         if method == "Random":
@@ -105,6 +127,8 @@ class Trainer:
             raise ValueError("Choose either 'Random' or 'Manual'!")
 
     def get_team(self) -> PokeTeam:
+        if self.team is None:
+            self.team = PokeTeam()
         return self.team
 
     def get_name(self) -> str:
