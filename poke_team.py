@@ -48,10 +48,8 @@ class PokeTeam:
         self.assemble_team(battle_mode)
 
     def assign_team(self, criterion: str = None) -> None:
-        if criterion not in self.CRITERION_LIST:
-            raise ValueError("Invalid criterion.")
-        
-        self.team.sort(key=lambda pokemon: getattr(pokemon, criterion), reverse = True)
+        sorted_pokemon = sorted(self.team, key=lambda pokemon: getattr(pokemon, criterion))
+        self.team = ArraySortedList(sorted_pokemon)
 
     def assemble_team(self, battle_mode: BattleMode) -> None:
         if battle_mode == BattleMode.SET:
