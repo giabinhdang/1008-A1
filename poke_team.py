@@ -8,6 +8,7 @@ from data_structures.queue_adt import *
 from data_structures.sorted_list_adt import *
 from data_structures.array_sorted_list import *
 from data_structures.bset import *
+from data_structures.abstract_list import *
 
 class PokeTeam:
     TEAM_LIMIT = 6
@@ -38,27 +39,31 @@ class PokeTeam:
         all_pokemon = get_all_pokemon_types()
         self.team_count = 0
         for i in range(self.TEAM_LIMIT):
-            rand_int = random.randint(0, len(all_pokemon)-1)
-            self.team[i] = all_pokemon[rand_int]()
-            self.team_count += 1
+            while True:
+                rand_int = random.randint(0, len(all_pokemon)-1)
+                pokemon = all_pokemon[rand_int]()
+                print(f"Selected Pokemon: {pokemon}")  # print the selected Pokemon
+                if pokemon is not None:
+                    self.team[i] = pokemon
+                    self.team_count += 1
+                    break  # break the loop if a valid Pokemon is found
 
     def regenerate_team(self, battle_mode: BattleMode, criterion: str = None) -> None:
-        print("Before regeneration:", [p.get_health() if p is not None else None for p in self.team.array])
-        if isinstance(self.team, ArrayR):
-            for i in range(len(self.team)):
-                if self.team[i] is not None:  # Ensure it's not None before calling regenerate
-                    self.team[i].regenerate()
-        elif isinstance(self.team, ArrayStack):
-            # Use a temporary list to hold Pokémon while regenerating
-            temp_list = []
-            while not self.team.is_empty():
-                pokemon = self.team.pop()
-                pokemon.regenerate()  # Assuming all elements are Pokémon objects
-                temp_list.append(pokemon)
-            # Push them back to the stack
-            while temp_list:
-                self.team.push(temp_list.pop(-1))  # Push back in reverse order to maintain original order
-        print("After regeneration:", [p.get_health() if p is not None else None for p in self.team.array])
+        size = 0
+        new_team = ArrayStack(self.TEAM_LIMIT)
+        while not self.team.is_empty():
+            pokemon = self.team.pop()
+            if pokemon is not None:
+                original_health = type(pokemon)()
+                pokemon.health = original_health.health
+                size += 1
+            new_team.push(pokemon)
+
+        # Reverse the stack to preserve the original order
+        self.team = ArrayStack(self.TEAM_LIMIT)
+        for _ in range(size):
+            self.team.push(new_team.pop())
+
         self.assemble_team(battle_mode)
 
 
@@ -79,22 +84,35 @@ class PokeTeam:
                 self.team[i] = pokemon
 
     def assemble_team(self, battle_mode: BattleMode) -> None:
-        original_team = self.team
+        original_team = ArrayStack(len(self.team))
+        for pokemon in self.team:
+            if pokemon is not None:
+                original_team.push(pokemon)
+
         if battle_mode == BattleMode.SET:
-            self.team = ArrayStack(self.TEAM_LIMIT)
-            for pokemon in reversed(original_team.array):
+            self.team = ArrayStack(len(original_team))
+            while len(original_team) > 0:
+                pokemon = original_team.pop()
                 if pokemon is not None:
                     self.team.push(pokemon)
-        elif battle_mode == BattleMode.ROTATE:
-            self.team = CircularQueue(self.TEAM_LIMIT)
-            for pokemon in original_team.array:
-                if pokemon is not None:
-                    self.team.append(pokemon)
-        elif battle_mode == BattleMode.OPTIMISE:
-            self.team = ArraySortedList(self.TEAM_LIMIT)
-            self.assign_team("level")
         else:
-            raise ValueError("Invalid battle mode.")
+            temp_list = CircularQueue(self.TEAM_LIMIT)
+            while not original_team.is_empty():
+                temp_list.append(original_team.pop())
+
+            if battle_mode == BattleMode.ROTATE:
+                self.team = CircularQueue(self.TEAM_LIMIT)
+                for i in range(len(temp_list)):
+                    pokemon = temp_list.serve()
+                    if pokemon is not None:
+                        self.team.append(pokemon)
+            elif battle_mode == BattleMode.OPTIMISE:
+                self.team = ArraySortedList(self.TEAM_LIMIT)
+                for i in range(len(temp_list)):
+                    pokemon = temp_list.serve()
+                    if pokemon is not None:
+                        self.team.insert(pokemon)
+           
         
     def special(self, battle_mode: BattleMode) -> None:
         if battle_mode == BattleMode.SET:
@@ -141,6 +159,15 @@ class PokeTeam:
     
     def is_empty(self) -> bool:
         return len(self.team) == 0
+    
+    def push(self, pokemon):
+        self.team.push(pokemon)
+
+    def pop(self):
+        if len(self.team) > 0:
+            return self.team.pop()
+        else:
+            return None
 
 class Trainer:
     def __init__(self, name) -> None:

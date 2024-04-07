@@ -11,6 +11,7 @@ class List(ABC, Generic[T]):
     """ Abstract class for a generic List. """
     def __init__(self) -> None:
         """ Basic List object initialiser. """
+        self.items = []
         self.length = 0
 
     @abstractmethod

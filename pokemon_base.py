@@ -54,7 +54,10 @@ class TypeEffectiveness:
         Returns:
             float: The effectiveness of the attack, as a float value between 0 and 4.
         """
-        types = list(PokeType)
+        types = ArrayR(len(PokeType))
+        for i, poke_type in enumerate(PokeType):
+            types[i] = poke_type
+
         n = len(types)
         i = types.index(attack_type)
         j = types.index(defend_type)

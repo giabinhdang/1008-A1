@@ -6,6 +6,7 @@ from pokemon_base import Pokemon
 from data_structures.stack_adt import Stack
 from data_structures.queue_adt import *
 from data_structures.array_sorted_list import *
+from data_structures.abstract_list import *
 from math import ceil
 
 class Battle:
@@ -22,46 +23,33 @@ class Battle:
         elif self.battle_mode == BattleMode.ROTATE:
             return self.rotate_battle()
         elif self.battle_mode == BattleMode.OPTIMISE:
-            return self.optimize_battle()
+            return self.optimise_battle()
         else:
             raise ValueError("Invalid battle mode.")
 
     def set_battle(self) -> Trainer | None:
+        # Loop until one team is empty
         while not self.trainer_1.get_team().is_empty() and not self.trainer_2.get_team().is_empty():
             pokemon1 = self.trainer_1.get_team().pop()
             pokemon2 = self.trainer_2.get_team().pop()
             winner = self.battle_round(pokemon1, pokemon2)
 
-            # If winner is Pokemon1, it gets pushed back to Trainer 1's team.
-            if winner == pokemon1:
+            # Check if pokemon1 won and is not fainted
+            if winner == pokemon1 and pokemon1.get_health() > 0:
                 self.trainer_1.get_team().push(pokemon1)
-                # If Pokemon2 has not fainted, it's returned to Trainer 2's team.
-                if pokemon2.health > 0:
-                    self.trainer_2.get_team().push(pokemon2)
-
-            # If winner is Pokemon2, it gets pushed back to Trainer 2's team.
-            elif winner == pokemon2:
+            # Check if pokemon2 won and is not fainted
+            elif winner == pokemon2 and pokemon2.get_health() > 0:
                 self.trainer_2.get_team().push(pokemon2)
-                # If Pokemon1 has not fainted, it's returned to Trainer 1's team.
-                if pokemon1.health > 0:
-                    self.trainer_1.get_team().push(pokemon1)
+            # No need to reinsert fainted Pokémon
 
-            # In case of a draw (e.g., both faint or survive with HP>0),
-            # both Pokemon are returned to their respective teams if they haven't fainted.
-            else:
-                if pokemon1.health > 0:
-                    self.trainer_1.get_team().push(pokemon1)
-                if pokemon2.health > 0:
-                    self.trainer_2.get_team().push(pokemon2)
-
-        # Determine the winner based on which team is not empty.
+        # Determine the winner based on which team is not empty
         if not self.trainer_1.get_team().is_empty():
             return self.trainer_1
         elif not self.trainer_2.get_team().is_empty():
             return self.trainer_2
         else:
-            # This condition is reached if both teams are emptied at the same time, resulting in a draw.
-            return None
+            return None  # Draw scenario
+
 
     def rotate_battle(self) -> Trainer | None:
         team_1 = self.trainer_1.get_team().team
@@ -77,15 +65,15 @@ class Battle:
             else:
                 winner = self.battle_round(pokemon1, pokemon2)
                 if winner == pokemon1 and pokemon1 is not None:
-                    team_1.append(pokemon1)
+                    team_1.push(pokemon1)
                 elif winner == pokemon2 and pokemon2 is not None:
-                    team_2.append(pokemon2)
+                    team_2.push(pokemon2)
         if len(team_1) == 0:
             return self.trainer_2
         else:
             return self.trainer_1
 
-    def optimize_battle(self) -> Trainer | None:
+    def optimise_battle(self) -> Trainer | None:
         team_1 = ArraySortedList(len(self.trainer_1.get_team()))
         team_2 = ArraySortedList(len(self.trainer_2.get_team()))
 
@@ -153,22 +141,45 @@ class Battle:
 
         # Handle the outcomes
         if pokemon1.health <= 0 and pokemon2.health <= 0:
-            return None  # Both faint
+            # Both faint
+            self.team.remove(pokemon1)
+            self.team.remove(pokemon2)
+            return None  
         elif pokemon1.health > 0 and pokemon2.health <= 0:
+            # Pokemon2 faints
             pokemon1.level_up()
+            if self.style == 'Set':
+                self.team.remove(pokemon1)
+                self.team.push(pokemon1)
+            self.team.remove(pokemon2)
             return pokemon1
         elif pokemon2.health > 0 and pokemon1.health <= 0:
+            # Pokemon1 faints
             pokemon2.level_up()
+            if self.style == 'Set':
+                self.team.remove(pokemon2)
+                self.team.push(pokemon2)
+            self.team.remove(pokemon1)
             return pokemon2
         else:
             # Both survive; both lose 1 HP then check for fainting
             pokemon1.health -= 1
             pokemon2.health -= 1
             if pokemon1.health <= 0 and pokemon2.health > 0:
+                # Pokemon1 faints
                 pokemon2.level_up()
+                if self.style == 'Set':
+                    self.team.remove(pokemon2)
+                    self.team.push(pokemon2)
+                self.team.remove(pokemon1)
                 return pokemon2
             elif pokemon2.health <= 0 and pokemon1.health > 0:
+                # Pokemon2 faints
                 pokemon1.level_up()
+                if self.style == 'Set':
+                    self.team.remove(pokemon1)
+                    self.team.push(pokemon1)
+                self.team.remove(pokemon2)
                 return pokemon1
             return None
 
