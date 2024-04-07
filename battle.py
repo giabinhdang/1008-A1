@@ -63,13 +63,6 @@ class Battle:
             # This condition is reached if both teams are emptied at the same time, resulting in a draw.
             return None
 
-
-
-
-
-    
-
-
     def rotate_battle(self) -> Trainer | None:
         team_1 = self.trainer_1.get_team().team
         team_2 = self.trainer_2.get_team().team
