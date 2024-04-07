@@ -7,6 +7,7 @@ from data_structures.stack_adt import *
 from data_structures.queue_adt import *
 from data_structures.sorted_list_adt import *
 from data_structures.array_sorted_list import *
+from data_structures.bset import *
 
 class PokeTeam:
     TEAM_LIMIT = 6
@@ -14,7 +15,7 @@ class PokeTeam:
     CRITERION_LIST = ["health", "defence", "battle_power", "speed", "level"]
 
     def __init__(self):
-        self.team = None # change None value if necessary
+        self.team = ArrayR(self.TEAM_LIMIT) # change None value if necessary
         self.team_count = 0
 
     def choose_manually(self):
@@ -42,24 +43,53 @@ class PokeTeam:
             self.team_count += 1
 
     def regenerate_team(self, battle_mode: BattleMode, criterion: str = None) -> None:
-        for pokemon in self.team:
-            pokemon.regenerate()
-
+        print("Before regeneration:", [p.get_health() if p is not None else None for p in self.team.array])
+        if isinstance(self.team, ArrayR):
+            for i in range(len(self.team)):
+                if self.team[i] is not None:  # Ensure it's not None before calling regenerate
+                    self.team[i].regenerate()
+        elif isinstance(self.team, ArrayStack):
+            # Use a temporary list to hold Pokémon while regenerating
+            temp_list = []
+            while not self.team.is_empty():
+                pokemon = self.team.pop()
+                pokemon.regenerate()  # Assuming all elements are Pokémon objects
+                temp_list.append(pokemon)
+            # Push them back to the stack
+            while temp_list:
+                self.team.push(temp_list.pop(-1))  # Push back in reverse order to maintain original order
+        print("After regeneration:", [p.get_health() if p is not None else None for p in self.team.array])
         self.assemble_team(battle_mode)
 
+
     def assign_team(self, criterion: str = None) -> None:
-        sorted_pokemon = sorted(self.team, key=lambda pokemon: getattr(pokemon, criterion))
-        self.team = ArraySortedList(sorted_pokemon)
+        if self.team:
+            non_pokemon = ArrayR(len(self.team))
+            index = 0
+            for pokemon in self.team:
+                if pokemon is not None:
+                    non_pokemon[index] = pokemon
+                    index += 1
+            if pokemon is not None:
+                sorted_pokemon = sorted(non_pokemon, key=lambda pokemon: getattr(pokemon, criterion))
+            else:
+                None
+            self.team = ArrayR(len(sorted_pokemon))
+            for i, pokemon in enumerate(sorted_pokemon):
+                self.team[i] = pokemon
 
     def assemble_team(self, battle_mode: BattleMode) -> None:
+        original_team = self.team
         if battle_mode == BattleMode.SET:
             self.team = ArrayStack(self.TEAM_LIMIT)
-            for pokemon in reversed(self.team.array):
-                self.team.push(pokemon)
+            for pokemon in reversed(original_team.array):
+                if pokemon is not None:
+                    self.team.push(pokemon)
         elif battle_mode == BattleMode.ROTATE:
             self.team = CircularQueue(self.TEAM_LIMIT)
-            for pokemon in self.team.array:
-                self.team.append(pokemon)
+            for pokemon in original_team.array:
+                if pokemon is not None:
+                    self.team.append(pokemon)
         elif battle_mode == BattleMode.OPTIMISE:
             self.team = ArraySortedList(self.TEAM_LIMIT)
             self.assign_team("level")
@@ -98,7 +128,7 @@ class PokeTeam:
             raise ValueError("Invalid battle mode.")
         
         self.assemble_team(battle_mode)
-        
+       # self.update_pokedex_completion()
 
     def __getitem__(self, index: int):
         return self.team.array[index]
@@ -108,13 +138,15 @@ class PokeTeam:
 
     def __str__(self):
         return "\n".join([str(pokemon) for pokemon in self.team])
+    
+    def is_empty(self) -> bool:
+        return len(self.team) == 0
 
 class Trainer:
-
     def __init__(self, name) -> None:
         self.name = name
         self.team = PokeTeam()
-        self.pokedex = ArrayR(len(PokeType))
+        self.pokedex = BSet()
 
     def pick_team(self, method: str) -> None:
         if method == "Random":
@@ -133,16 +165,24 @@ class Trainer:
         return self.name
 
     def register_pokemon(self, pokemon: Pokemon) -> None:
-        self.pokedex.add(pokemon.get_poketype())
+        self.pokedex.add(pokemon.get_poketype().value)
 
     def get_pokedex_completion(self) -> float:
         total_types = len(PokeType)
         seen_types = len(self.pokedex)
-        completion = seen_types / total_types
+        if total_types > 0: 
+            completion = seen_types / total_types
+        else: 
+            completion = 0
         return round(completion, 2)
+
+    def update_pokedex_completion(self) -> None:
+        for pokemon in self.get_team():
+            self.register_pokemon(pokemon)
 
     def __str__(self) -> str:
         return f"Trainer {self.name} Pokedex Completion: {int(self.get_pokedex_completion() * 100)}%"
+    
 
 if __name__ == '__main__':
     t = Trainer('Ash')
@@ -150,3 +190,5 @@ if __name__ == '__main__':
     t.pick_team("Random")
     print(t)
     print(t.get_team())
+
+
