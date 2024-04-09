@@ -16,11 +16,41 @@ class PokeTeam:
     CRITERION_LIST = ["health", "defence", "battle_power", "speed", "level"]
 
     def __init__(self):
-        self.team = ArrayR(self.TEAM_LIMIT) # change None value if necessary
+        self.team = ArrayStack(self.TEAM_LIMIT) # change None value if necessary
         self.team_count = 0
 
+    def add_pokemon(self, pokemon):
+        # Add a Pokémon to the team structure
+        if isinstance(self.team, ArrayStack):
+            self.team.push(pokemon)
+        elif isinstance(self.team, CircularQueue):
+            self.team.append(pokemon)
+        elif isinstance(self.team, ArraySortedList):
+            self.team.insert(pokemon)
+
+    def remove_pokemon(self):
+        # Remove and return a Pokémon from the team structure
+        if isinstance(self.team, ArrayStack):
+            return self.team.pop()
+        elif isinstance(self.team, CircularQueue):
+            return self.team.serve()
+        elif isinstance(self.team, ArraySortedList):
+            return self.team.pop(0)  # Remove the first Pokémon in the sorted list
+
+    def clear_team(self):
+        # Clear the current team structure, preparing for reassembly
+        if isinstance(self.team, ArrayStack):
+            while not self.team.is_empty():
+                self.team.pop()
+        elif isinstance(self.team, CircularQueue):
+            while not self.team.is_empty():
+                self.team.serve()
+        elif isinstance(self.team, ArraySortedList):
+            while not self.team.is_empty():
+                self.team.pop(0)  # Remove the first Pokémon in the sorted list
+
     def choose_manually(self):
-        self.team = ArrayR(self.TEAM_LIMIT)  # Initialize self.team as an ArrayR object
+        self.team = ArrayStack(self.TEAM_LIMIT)  # Initialize self.team as an ArrayR object
         print("Choose your Pokemon:")
         for i in range(self.TEAM_LIMIT):
             print(f"Select Pokemon {i+1}:")
@@ -35,37 +65,37 @@ class PokeTeam:
             self.team.insert(i, chosen_pokemon)  # Use the insert method to add the chosen Pokemon to the team
 
     def choose_randomly(self) -> None:
-        self.team = ArrayR(self.TEAM_LIMIT)
+        self.team = ArrayStack(self.TEAM_LIMIT)  # Initialize self.team as an ArrayStack object
         all_pokemon = get_all_pokemon_types()
         self.team_count = 0
-        for i in range(self.TEAM_LIMIT):
-            while True:
-                rand_int = random.randint(0, len(all_pokemon)-1)
-                pokemon = all_pokemon[rand_int]()
-                print(f"Selected Pokemon: {pokemon}")  # print the selected Pokemon
-                if pokemon is not None:
-                    self.team[i] = pokemon
-                    self.team_count += 1
-                    break  # break the loop if a valid Pokemon is found
-
-    def regenerate_team(self, battle_mode: BattleMode, criterion: str = None) -> None:
-        size = 0
-        new_team = ArrayStack(self.TEAM_LIMIT)
-        while not self.team.is_empty():
-            pokemon = self.team.pop()
+        for _ in range(self.TEAM_LIMIT):
+            rand_int = random.randint(0, len(all_pokemon)-1)
+            pokemon = all_pokemon[rand_int]()
+            print(f"Selected Pokemon: {pokemon}")  # print the selected Pokemon
             if pokemon is not None:
-                original_health = type(pokemon)()
-                pokemon.health = original_health.health
-                size += 1
-            new_team.push(pokemon)
+                self.team.push(pokemon)  # Use push method to add the selected Pokemon to the stack
+                self.team_count += 1
 
-        # Reverse the stack to preserve the original order
-        self.team = ArrayStack(self.TEAM_LIMIT)
-        for _ in range(size):
-            self.team.push(new_team.pop())
 
+    def regenerate_team(self, battle_mode: BattleMode, criterion: str = None):
+        # Use a temporary ArrayStack for regeneration regardless of the current battle mode
+        temp_stack = ArrayStack(self.TEAM_LIMIT)
+        
+        # Move Pokémon to the temp_stack and reset their health
+        while not self.is_empty():
+            pokemon = self.remove_pokemon()  # This abstract method adapts to the current structure
+            pokemon.health = type(pokemon)().health  # Reset health
+            temp_stack.push(pokemon)
+        
+        # Clear current team structure in preparation for reassembly
+        self.clear_team()
+        
+        # Move Pokémon back from temp_stack to the team, now using the appropriate structure for the battle mode
+        while not temp_stack.is_empty():
+            self.add_pokemon(temp_stack.pop())
+        
+        # Optionally re-sort or re-organize the team based on the battle mode
         self.assemble_team(battle_mode)
-
 
     def assign_team(self, criterion: str = None) -> None:
         if self.team:
@@ -84,36 +114,49 @@ class PokeTeam:
                 self.team[i] = pokemon
 
     def assemble_team(self, battle_mode: BattleMode) -> None:
-        original_team = ArrayStack(len(self.team))
-        for pokemon in self.team:
-            if pokemon is not None:
-                original_team.push(pokemon)
-
         if battle_mode == BattleMode.SET:
-            self.team = ArrayStack(len(original_team))
-            while len(original_team) > 0:
-                pokemon = original_team.pop()
+            temp_stack = ArrayStack(self.TEAM_LIMIT)
+            while not self.team.is_empty():  # If self.team is ArrayStack, it should have is_empty method
+                pokemon = self.team.pop()  # This should be valid since self.team should be ArrayStack
                 if pokemon is not None:
-                    self.team.push(pokemon)
-        else:
-            temp_list = CircularQueue(self.TEAM_LIMIT)
-            while not original_team.is_empty():
-                temp_list.append(original_team.pop())
+                    temp_stack.push(pokemon)
 
-            if battle_mode == BattleMode.ROTATE:
-                self.team = CircularQueue(self.TEAM_LIMIT)
-                for i in range(len(temp_list)):
-                    pokemon = temp_list.serve()
-                    if pokemon is not None:
-                        self.team.append(pokemon)
-            elif battle_mode == BattleMode.OPTIMISE:
-                self.team = ArraySortedList(self.TEAM_LIMIT)
-                for i in range(len(temp_list)):
-                    pokemon = temp_list.serve()
-                    if pokemon is not None:
-                        self.team.insert(pokemon)
-           
-        
+            self.team = ArrayStack(self.TEAM_LIMIT)
+            while not temp_stack.is_empty():
+                self.team.push(temp_stack.pop())
+
+        elif battle_mode == BattleMode.ROTATE:
+            temp_queue = CircularQueue(self.TEAM_LIMIT)
+            # Pop all Pokemon into a temporary queue
+            while not self.team.is_empty():
+                pokemon = self.team.pop()
+                if pokemon is not None:
+                    temp_queue.append(pokemon)
+
+            # Now queue back into self.team as a CircularQueue
+            self.team = CircularQueue(self.TEAM_LIMIT)
+            while not temp_queue.is_empty():
+                self.team.append(temp_queue.serve())
+
+        elif battle_mode == BattleMode.OPTIMISE:
+            # You'll need to pop all elements from the stack to sort them
+            # The ArraySortedList is expected to have a method to insert items in a sorted way
+            temp_list = ArraySortedList(self.TEAM_LIMIT)
+            while not self.team.is_empty():
+                pokemon = self.team.pop()
+                if pokemon is not None:
+                    # The ListItem constructor may require the item and a key for sorting
+                    temp_list.add(ListItem(pokemon, getattr(pokemon, self.criterion)))
+
+            # Now move the sorted Pokemon back into self.team
+            self.team = ArraySortedList(self.TEAM_LIMIT)
+            for i in range(temp_list.length):
+                self.team.add(temp_list[i])
+
+        else:
+            raise ValueError("Invalid battle mode.")
+
+
     def special(self, battle_mode: BattleMode) -> None:
         if battle_mode == BattleMode.SET:
             temp_stack = ArrayStack(self.TEAM_LIMIT)
@@ -155,7 +198,7 @@ class PokeTeam:
         return len(self.team)
 
     def __str__(self):
-        return "\n".join([str(pokemon) for pokemon in self.team])
+        return f"PokeTeam with {self.team_count} Pokemon"
     
     def is_empty(self) -> bool:
         return len(self.team) == 0
@@ -203,9 +246,9 @@ class Trainer:
             completion = 0
         return round(completion, 2)
 
-    def update_pokedex_completion(self) -> None:
-        for pokemon in self.get_team():
-            self.register_pokemon(pokemon)
+    def update_pokedex_completion(self, new_pokemon: Pokemon) -> None:
+        self.register_pokemon(new_pokemon)
+
 
     def __str__(self) -> str:
         return f"Trainer {self.name} Pokedex Completion: {int(self.get_pokedex_completion() * 100)}%"
